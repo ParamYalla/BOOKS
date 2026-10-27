@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Summary Digital Library</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+        }
+
+        /* Bold vibrant ambient mesh glow background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            background: radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.18) 0%, transparent 40%),
+                        radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15) 0%, transparent 40%),
+                        radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 40%);
+            filter: blur(40px);
+        }
+
+        /* Glassmorphism visual cards */
+        .glass-card {
+            background: rgba(22, 27, 46, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(168, 85, 247, 0.4);
+            box-shadow: 0 20px 40px -15px rgba(124, 58, 237, 0.25);
+        }
+
+        /* Card cover image alignment & uniform ratio */
+        .book-cover-container {
+            aspect-ratio: 2 / 3;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            background-color: #1a1e2e;
+            position: relative;
+        }
+
+        .book-cover-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .glass-card:hover .book-cover-img {
+            transform: scale(1.05);
+        }
+
+        /* Vibrant custom gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a3148;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a855f7;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Ambient background glow -->
+    <div class="ambient-bg"></div>
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 backdrop-blur-md bg-[#0b0f19]/80 border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-pink-500 to-blue-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-purple-500/30">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">
+                        <span class="gradient-text">PDF Summary</span> Vault
+                    </h1>
+                    <p class="text-xs text-gray-400">Curated Wisdom & Financial Insights</p>
+                </div>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button id="openAddModalBtn" onclick="toggleAddModal(true)" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm transition-all shadow-md shadow-purple-900/30 flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add New Book
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- Control Bar: Search & Category Filters -->
+        <div class="glass-card p-4 sm:p-6 rounded-2xl mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+
+            <!-- Search Bar -->
+            <div class="relative w-full md:w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="searchInput" oninput="filterBooks()" placeholder="Search title or author..." class="w-full pl-11 pr-4 py-2.5 bg-black/30 border border-white/10 rounded-xl focus:outline-none focus:border-purple-500 text-sm text-gray-200 placeholder-gray-500 transition-all">
+            </div>
+
+            <!-- Category Pills -->
+            <div class="flex flex-wrap items-center justify-center gap-2 w-full md:w-auto" id="categoryFilters">
+                <button onclick="setCategory('All')" class="category-btn active border border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition-all">All Books</button>
+                <button onclick="setCategory('Investing')" class="category-btn border border-white/10 bg-black/20 text-gray-400 hover:bg-white/5 text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition-all">Investing</button>
+                <button onclick="setCategory('Personal Growth')" class="category-btn border border-white/10 bg-black/20 text-gray-400 hover:bg-white/5 text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition-all">Personal Growth</button>
+                <button onclick="setCategory('Wealth')" class="category-btn border border-white/10 bg-black/20 text-gray-400 hover:bg-white/5 text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition-all">Wealth</button>
+            </div>
+        </div>
+
+        <!-- Book Grid -->
+        <div id="bookGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Dynamic Cards Loaded via JavaScript -->
+        </div>
+
+        <!-- Empty State Message -->
+        <div id="noResults" class="hidden text-center py-16">
+            <i class="fa-solid fa-ghost text-5xl text-gray-600 mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-300">No books found</h3>
+            <p class="text-sm text-gray-500 mt-1">Try adjusting your search query or filters.</p>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 py-6 mt-12 bg-[#080b12]">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>© 2026 PDF Book Summary Vault. Designed for seamless learning & fast reading.</p>
+            <p class="text-gray-400"><i class="fa-solid fa-code text-purple-400"></i> Easily editable code architecture for future additions.</p>
+        </div>
+    </footer>
+
+    <!-- READ / VIEW SUMMARY MODAL -->
+    <div id="viewModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="glass-card bg-[#121624] border-white/15 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 relative shadow-2xl">
+            <button onclick="toggleViewModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex flex-col sm:flex-row gap-6 mb-6">
+                <div class="w-32 h-48 flex-shrink-0 mx-auto sm:mx-0 book-cover-container">
+                    <img id="modalImg" src="" alt="" class="book-cover-img">
+                </div>
+                <div class="flex flex-col justify-center text-center sm:text-left">
+                    <span id="modalCategory" class="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-1"></span>
+                    <h2 id="modalTitle" class="text-2xl font-bold text-white mb-1"></h2>
+                    <p id="modalAuthor" class="text-sm text-gray-400 mb-4"></p>
+                    <div class="flex items-center justify-center sm:justify-start gap-3">
+                        <a id="modalDownloadBtn" href="#" download class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-download"></i> Download PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-white/10 pt-4">
+                <h3 class="text-sm font-bold text-gray-300 uppercase tracking-wider mb-2">Key Takeaways & Summary</h3>
+                <p id="modalSummary" class="text-sm text-gray-300 leading-relaxed whitespace-pre-line"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD NEW BOOK MODAL (Dynamic UI addition for future PDFs) -->
+    <div id="addModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="glass-card bg-[#121624] border-white/15 rounded-2xl max-w-lg w-full p-6 sm:p-8 relative shadow-2xl">
+            <button onclick="toggleAddModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h2 class="text-xl font-bold text-white mb-1">Add New Book Summary</h2>
+            <p class="text-xs text-gray-400 mb-6">Add a new book PDF to your collection dynamically.</p>
+
+            <form id="addBookForm" onsubmit="handleAddNewBook(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Book Title *</label>
+                    <input type="text" id="newTitle" required placeholder="e.g. Rich Dad Poor Dad" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Author Name *</label>
+                    <input type="text" id="newAuthor" required placeholder="e.g. Robert Kiyosaki" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Category</label>
+                        <select id="newCategory" class="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-500 text-gray-200">
+                            <option value="Investing">Investing</option>
+                            <option value="Personal Growth">Personal Growth</option>
+                            <option value="Wealth">Wealth</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Cover Image URL</label>
+                        <input type="url" id="newImg" placeholder="https://..." class="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">PDF Download Link or File Path</label>
+                    <input type="text" id="newPdf" placeholder="./my-book.pdf or https://..." class="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Key Summary & Takeaways</label>
+                    <textarea id="newSummary" rows="3" placeholder="Brief summary of the main points..." class="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="toggleAddModal(false)" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-all">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold transition-all shadow-md">Add Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC & EDITABLE BOOKS ARCHITECTURE -->
+    <script>
+        /**
+         * =========================================================================
+         * EDITABLE BOOK DATA ARRAY
+         * =========================================================================
+         * To manually add or modify books in code in the future:
+         * Simply copy one of the objects below and modify its title, author, category, img, pdf, and summary!
+         */
+        let books = [
+            {
+                id: 1,
+                title: "A Beginner's Guide to the Stock Market",
+                author: "Matthew R. Kratter",
+                category: "Investing",
+                img: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=500&q=80",
+                pdf: "./books/a-beginnerx27s-guide-to-the-stock-market-everything-you-need-to-start-making-money-today-by-matthew-kratter.pdf",
+                summary: "Key Takeaways:\n1. Focus on buying shares of stable, growing businesses rather than speculative gambling.\n2. Understand basic stock metrics like P/E ratio, market cap, and dividend yields.\n3. Keep risk management strictly intact: never invest money you cannot afford to lose."
+            },
+            {
+                id: 2,
+                title: "Atomic Habits",
+                author: "James Clear",
+                category: "Personal Growth",
+                img: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80",
+                pdf: "./books/Atomic%20Habits.pdf",
+                summary: "Key Takeaways:\n1. Small 1% improvements every day compound into massive long-term results.\n2. Focus on system design rather than setting goal targets alone.\n3. Make habit loops easy, attractive, obvious, and satisfying to build solid identity-based habits."
+            },
+            {
+                id: 3,
+                title: "Middle Class to Millionaire",
+                author: "Kyle Dynes",
+                category: "Wealth",
+                img: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=500&q=80",
+                pdf: "./books/mddle%20cls%20to%20mill%20%20kyle%20dynes.pdf",
+                summary: "Key Takeaways:\n1. Break out of traditional paycheck-to-paycheck mindsets by creating multiple scalable cash flow streams.\n2. Acquire cash-generating assets rather than liabilities dressed as status symbols.\n3. Automate savings and reinvest capital aggressively."
+            },
+            {
+                id: 4,
+                title: "Grow Rich! With Peace of Mind",
+                author: "Napoleon Hill",
+                category: "Wealth",
+                img: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=500&q=80",
+                pdf: "./books/napoleon-hill-think-and-grow-rich.pdf",
+                summary: "Key Takeaways:\n1. True riches encompass peace of mind, physical health, and meaningful relationships alongside wealth.\n2. Eliminate worry, fear, and negativity through controlled master-mind principles.\n3. Align daily actions with clear, unwavering mental purpose."
+            },
+            {
+                id: 5,
+                title: "One Up On Wall Street",
+                author: "Peter Lynch",
+                category: "Investing",
+                img: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=500&q=80",
+                pdf: "./books/one-up-on-wall-street.pdf",
+                summary: "Key Takeaways:\n1. Individual retail investors have natural advantages over institutional Wall Street managers by noticing real-world product trends first.\n2. Categorize stocks into Fast Growers, Stalwarts, and Cyclicals before analyzing balance sheets.\n3. Invest in what you know and understand deeply."
+            },
+            {
+                id: 6,
+                title: "The Psychology of Money",
+                author: "Morgan Housel",
+                category: "Wealth",
+                img: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=500&q=80",
+                pdf: "./books/The%20Psychology%20of%20Money%20by%20Morgan%20Housel.pdf",
+                summary: "Key Takeaways:\n1. Doing well with money has little to do with how smart you are and more to do with how you behave.\n2. Freedom & autonomy over time is the highest dividend money pays.\n3. Compounding works best when you prioritize endurance and survival over quick gains."
+            },
+            {
+                id: 7,
+                title: "The Intelligent Investor",
+                author: "Benjamin Graham",
+                category: "Investing",
+                img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500&q=80",
+                pdf: "./books/THE-INTELLIGENT-INVESTOR.pdf",
+                summary: "Key Takeaways:\n1. Always insist on a 'Margin of Safety' when valuing and purchasing stocks.\n2. Treat 'Mr. Market' as an emotional business partner whose mood swings offer buying opportunities.\n3. Distinguish clearly between defensive value investing and reckless speculation."
+            },
+            {
+                id: 8,
+                title: "The Little Book of Common Sense Investing",
+                author: "John C. Bogle",
+                category: "Investing",
+                img: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=500&q=80",
+                pdf: "./books/the-little-book-of-common-sense-investing-the-only-way-to-guarantee-your-fair-share-of-stock-market-returns-10nbsped-9781119404507-9781119404521-9781119404514-1119404509_compress.pdf",
+                summary: "Key Takeaways:\n1. Don't look for the needle in the haystack; buy the entire haystack through broad low-cost index funds.\n2. High management fees and frequent trading costs severely erode long-term compound wealth.\n3. Simple buy-and-hold strategies beat active stock-picking funds over time."
+            },
+            {
+                id: 9,
+                title: "Think and Grow Rich",
+                author: "Napoleon Hill",
+                category: "Personal Growth",
+                img: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=500&q=80",
+                pdf: "./books/Think-And-Grow-Rich_2011-06_unlocked%20ok.pdf",
+                summary: "Key Takeaways:\n1. Desire backed by specialized knowledge and burning determination creates tangible physical wealth.\n2. Utilize autosuggestion and sub-conscious mind programming to overcome self-doubt.\n3. Form Mastermind groups with goal-oriented, like-minded individuals."
+            }
+        ];
+
+        let selectedCategory = 'All';
+
+        // Initialize Library Grid on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderBooks();
+        });
+
+        // Render Books into Grid
+        function renderBooks() {
+            const grid = document.getElementById('bookGrid');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+            const noResults = document.getElementById('noResults');
+
+            const filtered = books.filter(book => {
+                const matchesSearch = book.title.toLowerCase().includes(searchVal) || book.author.toLowerCase().includes(searchVal);
+                const matchesCategory = selectedCategory === 'All' || book.category === selectedCategory;
+                return matchesSearch && matchesCategory;
+            });
+
+            grid.innerHTML = '';
+
+            if (filtered.length === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+                filtered.forEach(book => {
+                    const cardHtml = `
+                        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between h-full group">
+                            <div>
+                                <!-- Book Cover Container -->
+                                <div class="book-cover-container mb-4">
+                                    <img src="${book.img}" alt="${book.title}" class="book-cover-img" onerror="this.src='https://placehold.co/400x600/1e293b/a855f7?text=${encodeURIComponent(book.title)}'">
+                                    <span class="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-purple-300 border border-purple-500/30 text-[10px] uppercase font-bold px-2 py-1 rounded-md">
+                                        ${book.category}
+                                    </span>
+                                </div>
+
+                                <!-- Book Info -->
+                                <h3 class="font-bold text-base text-gray-100 group-hover:text-purple-300 transition-colors line-clamp-1" title="${book.title}">${book.title}</h3>
+                                <p class="text-xs text-gray-400 mb-3">${book.author}</p>
+                                <p class="text-xs text-gray-400 line-clamp-3 mb-4 leading-relaxed">${book.summary}</p>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                <button onclick="openBookModal(${book.id})" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-semibold transition-all flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-eye text-purple-400"></i> Read
+                                </button>
+                                <a href="${book.pdf}" download="${book.title}.pdf" onclick="handleDownload(event)" class="px-3 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-download"></i> PDF
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            }
+        }
+
+        // Search Filter Event
+        function filterBooks() {
+            renderBooks();
+        }
+
+        // Category Filter
+        function setCategory(cat) {
+            selectedCategory = cat;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                if (btn.textContent.includes(cat)) {
+                    btn.className = "category-btn active border border-purple-500/50 bg-purple-600/20 text-purple-300 text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition-all";
+                } else {
+                    btn.className = "category-btn border border-white/10 bg-black/20 text-gray-400 hover:bg-white/5 text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition-all";
+                }
+            });
+            renderBooks();
+        }
+
+        // Open View / Read Summary Modal
+        function openBookModal(id) {
+            const book = books.find(b => b.id === id);
+            if (!book) return;
+
+            document.getElementById('modalTitle').textContent = book.title;
+            document.getElementById('modalAuthor').textContent = "By " + book.author;
+            document.getElementById('modalCategory').textContent = book.category;
+            document.getElementById('modalSummary').textContent = book.summary;
+            document.getElementById('modalImg').src = book.img;
+
+            const dlBtn = document.getElementById('modalDownloadBtn');
+            dlBtn.href = book.pdf;
+            dlBtn.setAttribute('download', `${book.title}.pdf`);
+            dlBtn.onclick = handleDownload;
+
+            toggleViewModal(true);
+        }
+
+        function toggleViewModal(show) {
+            const modal = document.getElementById('viewModal');
+            if (show) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function toggleAddModal(show) {
+            const modal = document.getElementById('addModal');
+            if (show) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        // Handle PDF Download trigger
+        function handleDownload(e) {
+            // Friendly message if default placeholder link is clicked
+            if (e.currentTarget.getAttribute('href') === '#') {
+                e.preventDefault();
+                alert('No PDF file has been linked to this book yet.');
+            }
+        }
+
+        // Dynamically add new book from UI
+        function handleAddNewBook(e) {
+            e.preventDefault();
+            const title = document.getElementById('newTitle').value;
+            const author = document.getElementById('newAuthor').value;
+            const category = document.getElementById('newCategory').value;
+            const img = document.getElementById('newImg').value || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80';
+            const pdf = document.getElementById('newPdf').value || '#';
+            const summary = document.getElementById('newSummary').value || 'No detailed summary added yet.';
+
+            const newBook = {
+                id: Date.now(),
+                title,
+                author,
+                category,
+                img,
+                pdf,
+                summary
+            };
+
+            books.unshift(newBook);
+            renderBooks();
+            toggleAddModal(false);
+            document.getElementById('addBookForm').reset();
+        }
+    </script>
+</body>
+</html>
